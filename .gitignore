@@ -1,0 +1,9 @@
+*.venv
+secrets/*
+dev_scripts/*
+data/*
+.env
+.DS_Store
+__pycache__/
+*.pyc
+modules/*/*.egg-info/*

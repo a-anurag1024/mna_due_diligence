@@ -1,0 +1,15 @@
+[project]
+name = "mna_due_diligence"
+version = "0.1.0"
+description = "Modules for MNA Due Diligence contract intelligence agent"
+authors = [
+    { name="Aditya Anurag", email="a.anurag1024@gmail.com" }
+]
+dependencies = [
+    
+]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mna_due_diligence*"]
