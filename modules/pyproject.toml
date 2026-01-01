@@ -6,9 +6,23 @@ authors = [
     { name="Aditya Anurag", email="a.anurag1024@gmail.com" }
 ]
 dependencies = [
-    
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "docling", 
+    "docling-core",
+    "structlog",
+    "pydantic-settings",
+    "sqlalchemy[asyncio]",
+    "aiomysql",
+    "fastembed-gpu",
+    "qdrant-client",
+    "pandas",
+    "cryptography"
 ]
 
+[tool.uv]
+extra-index-url = ["https://download.pytorch.org/whl/cu121"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -7,3 +7,5 @@ data/*
 __pycache__/
 *.pyc
 modules/*/*.egg-info/*
+qdrant_storage
+logs/*
