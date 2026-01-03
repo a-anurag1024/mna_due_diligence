@@ -70,10 +70,18 @@ class IndexPipelineOrchestrator:
         return record
 
 
-    async def _update_status(self, session: AsyncSession, filename: str, status: ProcessingStatus, error: str = None):
+    async def _update_status(self, 
+                             session: AsyncSession, 
+                             filename: str, 
+                             status: ProcessingStatus,
+                             markdown: str = None, 
+                             page_count: str = None, 
+                             error: str = None):
         """Helper to update state in SQL."""
         stmt = update(FileState).where(FileState.filename == filename).values(
             status=status, 
+            markdown=markdown, 
+            page_count=page_count,
             error_message=error
         )
         await session.execute(stmt)
@@ -119,7 +127,7 @@ class IndexPipelineOrchestrator:
             await self.vector_store.upsert(points)
 
             # 6. Update State -> COMPLETED
-            await self._update_status(session, filename, ProcessingStatus.COMPLETED)
+            await self._update_status(session, filename, ProcessingStatus.COMPLETED, markdown=doc_obj.export_to_markdown(), page_count=len(doc_obj.pages))
             log.info("processing_completed_successfully")
 
         except Exception as e:

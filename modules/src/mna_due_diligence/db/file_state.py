@@ -21,5 +21,5 @@ class FileState(Base):
     last_updated = Column(DateTime, default=func.now(), onupdate=func.now())
     
     # We can also store metadata here
-    contract_type = Column(String(100), nullable=True)
+    markdown = Column(Text(length=16777215), nullable=True)  # MEDIUMTEXT in MySQL, ~16MB
     page_count = Column(String(50), nullable=True)
