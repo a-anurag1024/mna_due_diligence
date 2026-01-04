@@ -5,6 +5,8 @@ from config import settings
 
 from .base import Base
 from .file_state import FileState, ProcessingStatus
+from .contract_metadata import Contract
+from .llm_log import LLMLog
 
 
 # Async Engine

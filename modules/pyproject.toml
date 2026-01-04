@@ -18,7 +18,8 @@ dependencies = [
     "fastembed-gpu",
     "qdrant-client",
     "pandas",
-    "cryptography"
+    "cryptography",
+    "openai"
 ]
 
 [tool.uv]
