@@ -9,3 +9,4 @@ __pycache__/
 modules/*/*.egg-info/*
 qdrant_storage
 logs/*
+.vscode/*

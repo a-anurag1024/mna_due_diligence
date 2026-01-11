@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the modules package structure first for better layer caching
+COPY modules/pyproject.toml modules/
+COPY modules/src modules/src
+
+# Copy requirements file
+COPY requirements.in .
+
+# Install Python dependencies
+# This will install the mna_due_diligence package in editable mode from modules/
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache -r requirements.in uvicorn[standard]
+
+# Copy the MCP server and other root-level files
+COPY mcp_server.py .
+COPY docker-compose.yml .
+
+# Create directories for data and storage (volumes will mount here)
+RUN mkdir -p data logs qdrant_storage
+
+# Expose the SSE port
+EXPOSE 8000
+
+# Set the command to run the MCP server using SSE
+CMD ["python", "-m", "mcp.server.fastmcp", "run", "mcp_server.py", "--transport", "sse", "--port", "8000", "--host", "0.0.0.0"]

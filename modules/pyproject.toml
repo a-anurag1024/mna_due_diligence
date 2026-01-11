@@ -19,7 +19,8 @@ dependencies = [
     "qdrant-client",
     "pandas",
     "cryptography",
-    "openai"
+    "openai",
+    "mcp"
 ]
 
 [tool.uv]

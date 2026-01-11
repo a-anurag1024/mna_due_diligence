@@ -39,6 +39,27 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+
+  # --- MCP Server ---
+  mcp_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: mcp_vdr_server
+    ports:
+      - "7000:8000" # Expose for external agents
+    networks:
+      - app_network
+    volumes:
+      - ./data/CUAD_v1/full_contract_pdf/pdfs:/app/data/CUAD_v1/full_contract_pdf/pdfs # MUST match the DATA_DIR path so it can read files
+    environment:
+      # Use Service Names as Hostnames
+      DB_URL: mysql+aiomysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql_server:3306/${MYSQL_DATABASE}
+      QDRANT_URL: http://qdrant_server:6333
+      COLLECTION_NAME: contracts_v1
+      DATA_DIR: ./data/CUAD_v1/full_contract_pdf/pdfs
+      EMBEDDING_MODEL: BAAI/bge-m3
+      DEVICE: cpu  # Force CPU inside this container
   
   adminer:
     image: adminer:latest
