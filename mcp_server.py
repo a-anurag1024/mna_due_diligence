@@ -22,7 +22,8 @@ embedder = BGEEmbedder(model_name=config.EMBEDDING_MODEL, device="cpu")
 
 db_engine = create_async_engine(config.DB_URL, echo=False)
 AsyncSessionLocal = async_sessionmaker(db_engine, expire_on_commit=False)
-qdrant = AsyncQdrantClient(url=config.QDRANT_URL)
+qdrant = AsyncQdrantClient(url=config.QDRANT_URL,
+                           api_key=config.QDRANT_API_KEY)
 
 # --- TOOLS ---
 
@@ -42,6 +43,31 @@ async def filter_contracts(contract_type: str = None, party_name: str = None) ->
         
         if not rows: return "No matches found."
         return "\n".join([f"- {r.filename} ({r.party_a} vs {r.party_b})" for r in rows])
+    
+@mcp.tool()
+async def filter_contracts_advanced(sql_query: str) -> str:
+    """Filter contracts using a custom SQL WHERE clause (e.g., 'effective_date > \"2023-01-01\" AND contract_type = \"NDA\"')."""
+    async with AsyncSessionLocal() as session:
+        try:
+            # Build base query
+            stmt = select(Contract.filename, Contract.party_a, Contract.party_b, 
+                            Contract.effective_date, Contract.contract_type)
+            
+            # Append custom WHERE clause
+            stmt = stmt.where(sql_query)
+            
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            if not rows:
+                return "No matches found."
+            
+            return "\n".join([
+                f"- {r.filename} | Type: {r.contract_type} | {r.party_a} ↔ {r.party_b} | Date: {r.effective_date}"
+                for r in rows
+            ])
+        except Exception as e:
+            return f"Error executing query: {str(e)}"
 
 @mcp.tool()
 async def search_clauses(query: str, filename: str = None) -> str:
@@ -54,15 +80,15 @@ async def search_clauses(query: str, filename: str = None) -> str:
     if filename:
         q_filter = Filter(must=[FieldCondition(key="filename", match=MatchValue(value=filename))])
 
-    # 3. Search
-    results = await qdrant.search(
+    # 3. Search using query_points for AsyncQdrantClient
+    results = await qdrant.query_points(
         collection_name=config.COLLECTION_NAME,
-        query_vector=query_vec,
+        query=query_vec,
         query_filter=q_filter,
         limit=5
     )
     
-    return "\n".join([f"--- Found in {r.payload['filename']} ---\n{r.payload['enriched_text']}\n" for r in results])
+    return "\n".join([f"--- Found in {r.payload['filename']} ---\n{r.payload['enriched_text']}\n" for r in results.points])
 
 @mcp.tool()
 async def read_file(filename: str) -> str:
@@ -79,4 +105,5 @@ async def read_file(filename: str) -> str:
 
 # --- ENTRY POINT ---
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    # Use 'sse' transport for Server-Sent Events
+    mcp.run(transport="sse")

@@ -7,6 +7,7 @@ from .base import Base
 from .file_state import FileState, ProcessingStatus
 from .contract_metadata import Contract
 from .llm_log import LLMLog
+from .agent_log import AgentLog, ToolLog
 
 
 # Async Engine

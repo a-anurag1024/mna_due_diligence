@@ -20,7 +20,10 @@ dependencies = [
     "pandas",
     "cryptography",
     "openai",
-    "mcp"
+    "mcp",
+    "pydantic-ai",
+    "streamlit",
+    "aiohttp"
 ]
 
 [tool.uv]
