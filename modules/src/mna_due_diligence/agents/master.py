@@ -13,19 +13,6 @@ from ..logging import create_logging_service, truncate_for_log
 from .utils import extract_usage_from_result
 
 
-def stream_final_answer(text: str):
-    lines = [
-        "=" * 60,
-        "🎯 ✨ FINAL ANSWER ✨ 🎯",
-        "=" * 60,
-        "",
-        *text.strip().splitlines(),
-        "",
-        "=" * 60,
-    ]
-    return lines
-
-
 # --- DEPENDENCIES ---
 class MasterDeps:
     def __init__(self, mcp_session, status_callback, logging_service=None):

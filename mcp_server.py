@@ -106,4 +106,5 @@ async def read_file(filename: str) -> str:
 # --- ENTRY POINT ---
 if __name__ == "__main__":
     # Use 'sse' transport for Server-Sent Events
+    print("Starting MCP server with SSE transport...")
     mcp.run(transport="sse")

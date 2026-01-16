@@ -23,7 +23,12 @@ dependencies = [
     "mcp",
     "pydantic-ai",
     "streamlit",
-    "aiohttp"
+    "aiohttp",
+    "langgraph",
+    "langchain",
+    "langchain-openai",
+    "langchain-mcp-adapters",
+    "pymysql",
 ]
 
 [tool.uv]
