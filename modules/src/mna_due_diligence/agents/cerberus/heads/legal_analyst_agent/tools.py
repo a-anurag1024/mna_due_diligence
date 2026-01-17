@@ -7,6 +7,7 @@ def ask_human_tool(question: str) -> str:
     """
     Use this tool to ask the human user for clarification, business context, or approval.
     The question should have proper context to get a useful answer.
+    Since the human is outside the agent loop, give all the necessary details like file names, clauses, etc. But keep it concise.
     The agent execution will PAUSE here until the human responds.
     """
     # This triggers the graph interrupt. The value returned by the human later 

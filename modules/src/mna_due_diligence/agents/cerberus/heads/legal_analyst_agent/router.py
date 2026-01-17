@@ -2,7 +2,7 @@ from typing import Literal
 from .types import AnalystState
 
 
-def router_logic(state: AnalystState) -> Literal["tools", "force_exit", "end", "continue_reasoning", "conclude"]:
+def router_logic(state: AnalystState) -> Literal["tools", "force_exit", "end", "continue_reasoning", "conclude", "expand_given_data"]:
     messages = state["messages"]
     last_message = messages[-1]
     current_step = state.get("loop_step", 0)
@@ -27,6 +27,9 @@ def router_logic(state: AnalystState) -> Literal["tools", "force_exit", "end", "
     if next_step == "continue_analysis":
         # Continue reasoning without tools
         return "continue_reasoning"
+    
+    if next_step == "expand_given_data":
+        return "expand_given_data"
     
     # 3. FALLBACK: CHECK TOOL CALLS DIRECTLY (backward compatibility)
     if hasattr(last_message, 'tool_calls') and last_message.tool_calls:

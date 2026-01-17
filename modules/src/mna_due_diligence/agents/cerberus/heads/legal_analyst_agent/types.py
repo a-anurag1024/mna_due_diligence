@@ -25,6 +25,10 @@ class DataRequirement(BaseModel):
 class AnalystState(TypedDict):
     # Standard conversation history
     messages: Annotated[List[BaseMessage], operator.add]
+    # Input Data KV pairs
+    input_data: dict[str, str]
+    # Expand specific data keys
+    expand_given_data_keys: List[str]
     # Control loop counter
     loop_step: int
     # New risks discovered (accumulated)
@@ -33,6 +37,8 @@ class AnalystState(TypedDict):
     data_requirements: Annotated[List[DataRequirement], operator.add]
     # Next step for router (tool_call, conclude, etc.)
     next_step: str
+    # final output
+    final_output: Optional[dict]
 
 
 
@@ -52,10 +58,11 @@ class ReasonerOutput(BaseModel):
         ...,
         description="Short summary of what was done and what's next (if any)."
     )
-    next_step: Literal["tool_call", "conclude", "continue_analysis"] = Field(
+    next_step: Literal["expand_given_data", "tool_call", "conclude", "continue_analysis"] = Field(
         ...,
         description="The next action: tool_call if tool needed, conclude if done, continue_analysis to keep reasoning."
     )
+    expand_given_data_keys: List[str] = Field(..., description="List of keys from input_data to further expand.")
     data_requirements: List[DataRequirement] = Field(
         default_factory=list,
         description="Formatted request for any additional data requirements, if needed."

@@ -60,7 +60,8 @@ def reasoner_node(state: AnalystState):
             "messages": [formatted_response],
             "new_risks": reasoner_output.new_risks,
             "data_requirements": reasoner_output.data_requirements,
-            "next_step": reasoner_output.next_step
+            "next_step": reasoner_output.next_step,
+            "expand_given_data_keys": reasoner_output.expand_given_data_keys
         }
     except Exception as e:
         # Fallback if structured output fails
@@ -69,7 +70,8 @@ def reasoner_node(state: AnalystState):
             "messages": [fallback_msg],
             "new_risks": [],
             "data_requirements": [],
-            "next_step": "continue_analysis"
+            "next_step": "continue_analysis",
+            "expand_given_data_keys": []
         }
 
 
@@ -78,7 +80,35 @@ def reasoner_node(state: AnalystState):
 tool_node = ToolNode(tools)
 
 
-# --- NODE 3: FORCED CONCLUSION (The Safety Net) ---
+# --- NODE 3: Data Unravelling (if needed) ---
+def expand_given_data(state: AnalystState):
+    """
+    Expands analysis based on specific keys from input_data.
+    """
+    keys_to_expand = state.get("expand_given_data_keys", [])
+    expanded_messages = []
+    # Broadcast Update
+    print(f"[Legal Analyst] Expanding analysis on keys: {keys_to_expand}...")
+    
+    for key in keys_to_expand:
+        if key in state.get("input_data", {}):
+            data_content = state["input_data"][key][:5000]  # Limit to first 5000 chars
+            expansion_msg = AIMessage(content=f"Expanding analysis on data key '{key}':\n{data_content}")
+            expanded_messages.append(expansion_msg)
+    
+    if not expanded_messages:
+        expanded_messages.append(AIMessage(content="No valid keys provided for expansion. Continuing analysis."))
+    
+    return {
+        "messages": expanded_messages,
+        "new_risks": [],
+        "data_requirements": [],
+        "expand_given_data_keys": [],
+        "next_step": "continue_analysis"
+    }
+
+
+# --- NODE 4: FORCED CONCLUSION (The Safety Net) ---
 def forced_conclusion_node(state: AnalystState):
     """
     Called when the agent runs out of steps. 
@@ -111,7 +141,7 @@ def forced_conclusion_node(state: AnalystState):
     }
 
 
-# --- NODE 4: NATURAL CONCLUSION ---
+# --- NODE 5: NATURAL CONCLUSION ---
 def conclusion_node(state: AnalystState):
     """
     Called when the agent naturally completes analysis.
