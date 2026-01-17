@@ -62,10 +62,22 @@ def filter_contracts(contract_type: Optional[str] = None, party_name: Optional[s
             rows = result.all()
             
             if not rows:
-                return "No matches found."
-            return "\n".join([f"- filename: \"{r.filename}\" ({r.party_a} vs {r.party_b})" for r in rows])
+                return {
+                    "message": "No matches found.",
+                    "data": ""
+                }
+            return {
+                "message": f"Found {len(rows)} matching contracts.",
+                "data": "\n".join([
+                    f"- {r.filename} | {r.party_a} ↔ {r.party_b} | Date: {r.effective_date}"
+                    for r in rows
+                ])
+            }
     except Exception as e:
-        return f"Error filtering contracts: {str(e)}"
+        return {
+            "message": f"Error filtering contracts: {str(e)}",
+            "data": ""
+        }
 
 
 @tool
@@ -97,14 +109,21 @@ def filter_contracts_advanced(sql_query: str) -> str:
             rows = result.all()
             
             if not rows:
-                return "No matches found."
-            
-            return "\n".join([
-                f"- {r.filename} | Type: {r.contract_type} | {r.party_a} ↔ {r.party_b} | Date: {r.effective_date}"
-                for r in rows
-            ])
+                return {"message": "No matches found.",
+                        "data": ""}
+            data = "\n".join([
+                    f"- {r.filename} | Type: {r.contract_type} | {r.party_a} ↔ {r.party_b} | Date: {r.effective_date}"
+                    for r in rows
+                ])
+            return {
+                "message": f"Found {len(rows)} matching contracts. files found: \n" + data,
+                "data": data
+            }
     except Exception as e:
-        return f"Error with advanced filter: {str(e)}"
+        return {
+            "message": f"Error with advanced filter: {str(e)}",
+            "data": ""
+        }
 
 
 @tool
@@ -117,7 +136,7 @@ def search_clauses(query: str, filename: Optional[str] = None) -> str:
         filename: Optional filename to restrict search to a specific contract document
     
     Returns:
-        Top 5 most relevant contract clauses matching the query with their source documents
+        Top 15 most relevant contract clauses matching the query with their source documents
     """
     try:
         # Embed the query
@@ -133,18 +152,25 @@ def search_clauses(query: str, filename: Optional[str] = None) -> str:
             collection_name=config.COLLECTION_NAME,
             query=query_vec,
             query_filter=q_filter,
-            limit=5
+            limit=15
         ).points
         
         if not results:
-            return "No matching clauses found."
+            return {"message": "No matching clauses found.",
+                    "data": ""}
         
-        return "\n".join([
-            f"--- Found in {r.payload['filename']} ---\n{r.payload['enriched_text']}\n" 
-            for r in results
-        ])
+        return {
+            "message": f"Found {len(results)} matching clauses.",
+            "data": "\n".join([
+                f"--- Found in {r.payload['filename']} ---\n{r.payload['enriched_text']}\n" 
+                for r in results
+            ])
+        }
     except Exception as e:
-        return f"Error searching clauses: {str(e)}"
+        return {
+            "message": f"Error searching clauses: {str(e)}",
+            "data": ""
+        }
 
 
 @tool
@@ -165,12 +191,18 @@ def read_file(filename: str) -> str:
             row = result.scalar_one_or_none()
             
             if not row:
-                return "File not found."
+                return {"message": "File not found.",
+                        "data": ""}
             
-            return row[:3000]  # Limit tokens
+            return {
+                "message": f"Read file '{filename}' successfully. {len(row)} characters retrieved. content: {row[:50]}...{row[-50:] if len(row) > 100 else ''}",
+                "data": row
+            }
     except Exception as e:
-        return f"Error reading file: {str(e)}"
-
+        return {
+            "message": f"Error reading file: {str(e)}",
+            "data": ""
+        }
 
 # Export tools list for easy import
 vdr_tools = [
@@ -179,3 +211,20 @@ vdr_tools = [
     search_clauses,
     read_file
 ]
+
+tools_docs = {tool.name: tool.description for tool in vdr_tools}
+
+
+# --- Tools Wrapper ---
+def execute_tool(name: str, args: dict) -> str:
+    """Helper to execute the specific tool by name."""
+    # MAP YOUR REAL TOOLS HERE
+    if name == "filter_contracts":
+        return filter_contracts.invoke(input=args)
+    elif name == "filter_contracts_advanced":
+        return filter_contracts_advanced.invoke(input=args)
+    elif name == "read_file":
+        return read_file.invoke(input=args)
+    elif name == "search_clauses":
+        return search_clauses.invoke(input=args)
+    return "Unknown Tool"

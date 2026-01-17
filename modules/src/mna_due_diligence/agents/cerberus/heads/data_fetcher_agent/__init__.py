@@ -1,68 +1,98 @@
-from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_openai import ChatOpenAI
-from langchain.agents.structured_output import ToolStrategy
+from langgraph.graph import StateGraph, START, END
 
-from .types import FetchedData
-from .vdr_tools import vdr_tools
-from .prompt import DATA_FETCHER_SYSTEM_PROMPT
+from .nodes import strategist_node, executor_node, forced_ending_node
+from .types import FetcherState
 
 
+def route_logic(state: FetcherState):
+    """
+    Decides whether to loop back, force end, or finish normally.
+    """
+    # 1. Hard Limit Check
+    if state["iteration_count"] >= 3:
+        return "force_end"
     
-llm = ChatOpenAI(
-    model="gpt-4.1",
-    streaming=True,  # token streaming works here
+    # 2. Logic Check (Did the Strategist say we are done?)
+    # If we have a final summary, we are likely done.
+    # Alternatively, check if pending_tool_calls was empty (handled in strategist logic).
+    if state.get("final_summary"):
+        return "finish"
+        
+    # 3. Default: Loop back
+    return "continue"
+
+
+
+# --- BUILD GRAPH ---
+workflow = StateGraph(FetcherState)
+
+workflow.add_node("strategist", strategist_node)
+workflow.add_node("executor", executor_node)
+workflow.add_node("forced_ending", forced_ending_node)
+
+# Flow
+workflow.add_edge(START, "strategist")
+
+# Conditional Logic after strategist: route to executor if there are pending tool calls, otherwise finish
+workflow.add_conditional_edges(
+    "strategist",
+    lambda x: "executor" if x["pending_tool_calls"] else "finish",
+    {
+        "executor": "executor",
+        "finish": END
+    }
 )
-data_fetcher_agent = create_agent(
-    model=llm,
-    tools=vdr_tools,
-    system_prompt=DATA_FETCHER_SYSTEM_PROMPT,
-    response_format=ToolStrategy(FetchedData),
+
+# Conditional Logic after executor: check iteration limit, then loop back to strategist, force end, or finish
+workflow.add_conditional_edges(
+    "executor",
+    route_logic,
+    {
+        "continue": "strategist",
+        "force_end": "forced_ending",
+        "finish": END
+    }
 )
+
+# Forced ending always goes to END
+workflow.add_edge("forced_ending", END)
+
+data_fetcher_agent = workflow.compile()
 
 
 def data_fetcher_node(instruction: str) -> dict:
     """
-    Executes the Data Fetcher ReAct Agent for the given instruction.
+    Executes the Data Fetcher State Graph for the given instruction.
     """
     # 1. Broadcast Update
     print(f"[Node] Data Fetcher Invoked with instruction: {instruction}")
     
-    # 2. Run the ReAct Agent Loop with streaming
-    inputs = {"messages": [HumanMessage(content=instruction)]}
+    # 2. Initial State
+    initial_state: FetcherState = {
+        "instruction": instruction,
+        "iteration_count": 0,
+        "fetched_data": {},
+        "tool_logs": [],
+        "pending_tool_calls": [],
+        "final_summary": ""
+    }
     
-    input_tokens_used = 0
-    output_tokens_used = 0
-    call_data = []
-    for chunk in data_fetcher_agent.stream(inputs, stream_mode="updates"): 
-        for step, data in chunk.items():
-            print(f"[Node][Data Fetcher] >> step: {step}")
-            #print(f"content: {data['messages'][-1].content_blocks}")
-            if step == 'model':
-                input_tokens_used += sum([aimessage.usage_metadata['input_tokens'] for aimessage in data['messages'] if isinstance(aimessage, AIMessage)])
-                output_tokens_used += sum([aimessage.usage_metadata['output_tokens'] for aimessage in data['messages'] if isinstance(aimessage, AIMessage)])
-                for content in data['messages'][-1].content_blocks:
-                    if content['type'] == 'tool_call':
-                        print(f"[Node][Data Fetcher] >> Calling TOOL: {content['name']} with args {content['args']}")
-                    elif content['type'] == 'text':
-                        print(f"[Node][Data Fetcher] >> {content['text']}")
-                    else:
-                        print(f"[Node][Data Fetcher] >> Unknown content type: {content}")
-            if step == 'tools':
-                print(f"[Node][Data Fetcher] >> TOOL RESULT: {data['messages'][-1].content_blocks}")
-            call_data.append(data['messages'][-1].content_blocks)
-    
-    # 3. Extract Final Response
-    final_response: FetchedData = chunk['model']['structured_response']
+    # 3. Run the State Graph
+    final_state = data_fetcher_agent.invoke(initial_state)
     
     # 4. Log and Return
     log_msg = (
-        f"📥 Data Fetcher: Fetched {len(final_response.data)} items. "
-        f"[Tokens: In={input_tokens_used}, Out={output_tokens_used}]"
+        f"📥 Data Fetcher: Fetched {len(final_state['fetched_data'])} items in "
+        f"{final_state['iteration_count']} iterations."
     )
+    print(log_msg)
+    
+    final_message = f"📝 Summary: {final_state['final_summary']}"
+    final_message += "\nTool logs:"
+    final_message += "\n".join(final_state["tool_logs"])
     
     return {
-        "fetched_data": final_response,
-        "logs": [log_msg],
-        "call_data": call_data
+        "fetched_data": final_state["fetched_data"],
+        "message": final_message,
+        "logs": [log_msg, final_message],
     }
