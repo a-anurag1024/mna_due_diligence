@@ -4,18 +4,6 @@ from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
 
 
-# --- TIER 1: RECEPTIONIST STATE (Persistent) ---
-class ReceptionistState(TypedDict):
-    """
-    The permanent memory of the chatbot session.
-    """
-    messages: Annotated[List[BaseMessage], operator.add] # Chat History
-    risk_register: Annotated[List[dict], operator.add]   # Global List of Risks Found
-    user_id: str
-
-
-
-# --- TIER 2: ORCHESTRATOR (Hades) STATE (Ephemeral) ---
 class HadesState(TypedDict):
     """
     The scratchpad for a single complex audit mission.
