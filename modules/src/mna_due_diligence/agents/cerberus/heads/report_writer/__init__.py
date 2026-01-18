@@ -11,9 +11,14 @@ llm = ChatOpenAI(model="gpt-4.1-nano")
 
 def report_writer_node(mission: str,
                        risks: list[dict],
-                       logs: list):
+                       logger=None):
     """
     Synthesizes the accumulated findings into a final Markdown report.
+    
+    Args:
+        mission: The audit mission
+        risks: List of identified risks
+        logger: CerberusMindLogger instance for logging
     """
     # Broadcast Update
     print(f"[Report Writer] Generating final report with {len(risks)} findings...")
@@ -27,9 +32,10 @@ def report_writer_node(mission: str,
             "No material risks were identified in the documents processed. "
             "The Legal Analyst reviewed the fetched data and found no clauses meeting the risk criteria."
         )
+        if logger:
+            logger.log("Report Writer", "📝 Generated 'No Risks' report.")
         return {
-            "final_report": no_risk_msg,
-            "logs": ["📝 [Reporter] Generated 'No Risks' report."]
+            "final_report": no_risk_msg
         }
 
     # 2. Prepare the Prompt
@@ -40,9 +46,6 @@ def report_writer_node(mission: str,
     
     **IDENTIFIED RISKS:**
     {risks_str}
-    
-    **LOGS (Context):**
-    {len(logs)} steps executed.
     
     Generate the Final Report now.
     """
@@ -57,8 +60,10 @@ def report_writer_node(mission: str,
     response = llm.invoke(messages)
     report_text = response.content
 
-    # 5. Update State
+    # 5. Log and Return
+    if logger:
+        logger.log("Report Writer", f"📝 Finalized report with {len(risks)} findings.")
+    
     return {
-        "final_report": report_text,
-        "logs": [f"📝 [Reporter] Finalized report with {len(risks)} findings."]
+        "final_report": report_text
     }

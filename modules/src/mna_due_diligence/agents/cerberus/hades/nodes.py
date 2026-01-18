@@ -10,26 +10,27 @@ from .types import HadesState, SupervisorDecision, ForcedStopSummary
 
 # --- WRAPPER NODES (Connecting Heads to State) ---
 
-def planner_wrapper(state: HadesState):
+def planner_wrapper(state: HadesState, config):
     """Calls the Planner Head"""
     # Broadcast Update
     print(f"[Hades Planner Wrapper] Invoking planner for mission: {state['mission']}...")
     
-    result = planner_node(state['mission'])
+    logger = config.get('configurable', {}).get('logger')
+    result = planner_node(state['mission'], logger)
     observation = f"Plan for the mission: \n{result['plan']}"
     return {
         "plan": result['plan'],
-        "planner_state": state.get("planner_state", []) + result.get('logs', []),
         "last_steps_observations": state.get("last_steps_observations", []) + [observation]
     }
 
 
-def fetcher_wrapper(state: HadesState):
+def fetcher_wrapper(state: HadesState, config):
     """Calls the Data Fetcher Head"""
     # Broadcast Update
     print(f"[Hades Data Fetcher Wrapper] Invoking data fetcher for instruction: {state['current_step_instruction']}...")
     
-    result = data_fetcher_node(state['current_step_instruction'])
+    logger = config.get('configurable', {}).get('logger')
+    result = data_fetcher_node(state['current_step_instruction'], logger)
     observation = result.get("message", "No message returned.")
     if state.get('data_fetcher_state', None) is None:
         state['data_fetcher_state'] = []
@@ -37,7 +38,6 @@ def fetcher_wrapper(state: HadesState):
         state['last_steps_observations'] = []
     return {
         "fetched_data": result['fetched_data'],
-        "data_fetcher_state": state.get("data_fetcher_state", []) + result.get('logs', []),
         "last_steps_observations": state.get("last_steps_observations", []) + [observation]
     }
 
@@ -74,20 +74,20 @@ def analyst_wrapper(state: HadesState):
     }
 
 
-def writer_wrapper(state: HadesState):
+def writer_wrapper(state: HadesState, config):
     """Calls the Report Writer Head"""
     # Broadcast Update
     print(f"[Hades Report Writer Wrapper] Invoking report writer for mission: {state['mission']}...")
     
+    logger = config.get('configurable', {}).get('logger')
     result = report_writer_node(
         mission=state['mission'],
         risks=state['identified_risks'],
-        logs=state.get('logs', [])
+        logger=logger
     )
     if state.get('report_writer_state', None) is None:
         state['report_writer_state'] = []
     return {
         "final_report": result['final_report'],
-        "report_writer_state": state.get("report_writer_state", []) + result.get('logs', []),
         "last_steps_observations": state.get("last_steps_observations", []) + [result['final_report']]
     }

@@ -1,112 +1,180 @@
 import streamlit as st
+import pandas as pd
 import asyncio
-import os
-from dotenv import load_dotenv
+import json
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.types import Command
+from langgraph.errors import NodeInterrupt
 
-# Load environment variables from .env file FIRST (before importing agents)
-load_dotenv()
+from mna_due_diligence.agents.cerberus import cerberus_agent
+from mna_due_diligence.agents.cerberus.utils import CerberusMindLogger
 
-# Import after loading env vars so agents can access OPENAI_API_KEY
-from mna_due_diligence.agents.master import MultiAgentClient
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="Cerberus VDR Auditor",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-st.set_page_config(page_title="Agentic Audit Team", layout="wide")
-st.title("🤖 Multi-Agent Audit Team")
-
-# Check MCP server URL
-mcp_url = os.getenv("MCP_SSE_URL", "http://localhost:8000/sse")
-if not mcp_url:
-    st.error("MCP_SSE_URL environment variable not set!")
-    st.stop()
-
-# Initialize session state
+# --- SESSION STATE INITIALIZATION ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "conversation_complete" not in st.session_state:
-    st.session_state.conversation_complete = False
-if "tool_logs" not in st.session_state:
-    st.session_state.tool_logs = []
+    st.session_state.messages = []  # Chat history
+if "risk_register" not in st.session_state:
+    st.session_state.risk_register = [] # Global risks
+if "logs" not in st.session_state:
+    st.session_state.logs = [] # Streaming logs
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = "session_1" # Fixed ID for demo persistence
+if "awaiting_input" not in st.session_state:
+    st.session_state.awaiting_input = False # Track HITL state
+if "interrupt_value" not in st.session_state:
+    st.session_state.interrupt_value = None # Store the question asked by agent
 
-# Add reset button in sidebar
+# --- SIDEBAR: RISKS & LOGS ---
 with st.sidebar:
-    st.header("🔄 Session Control")
-    if st.button("Reset Chat", type="primary", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.conversation_complete = False
-        st.session_state.tool_logs = []
-        st.rerun()
+    st.header("🛡️ Risk Register")
     
-    if st.session_state.messages:
-        st.metric("Messages", len(st.session_state.messages))
-        if st.session_state.conversation_complete:
-            st.success("✅ Session Complete")
-        else:
-            st.info("🔄 Session Active")
+    # 1. RISK TABLE
+    if st.session_state.risk_register:
+        # Convert list of dicts to DataFrame
+        df = pd.DataFrame(st.session_state.risk_register)
+        
+        # Simple styling: Highlight High Severity
+        def highlight_risk(val):
+            color = 'red' if val in ['High', 'Critical'] else 'black'
+            return f'color: {color}'
+            
+        st.dataframe(
+            df[["filename", "risk_category", "severity"]],
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        # Detail View Expander
+        with st.expander("Risk Details"):
+            for r in st.session_state.risk_register:
+                st.markdown(f"**{r['filename']}** ({r['severity']})")
+                st.caption(f"**Category:** {r['risk_category']}")
+                st.caption(f"Reasoning: {r['reasoning']}")
+                st.caption(f"Evidence: *\"{r['evidence_quote']}\"*")
+                st.divider()
+    else:
+        st.info("No risks identified yet.")
 
-# Draw History
+# --- MAIN: CHAT INTERFACE ---
+st.title("Cerberus: M&A Deal DUe Diligence Auditor")
+
+# 1. Display Chat History
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-        # Show tool logs for assistant messages
-        if msg["role"] == "assistant" and "tool_logs" in msg and msg["tool_logs"]:
-            with st.status("Tool Calls & Execution Log", state="complete", expanded=True):
-                for log in msg["tool_logs"]:
-                    st.write(log)
-
-# --- THE STREAMING LOGIC ---
-# Only allow new input if conversation is not complete
-if not st.session_state.conversation_complete:
-    if prompt := st.chat_input("Assign a task to the team..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
+    if isinstance(msg, HumanMessage):
         with st.chat_message("user"):
-            st.markdown(prompt)
-
+            st.markdown(msg.content)
+    elif isinstance(msg, AIMessage):
         with st.chat_message("assistant"):
-            # 1. Create a Status Container (The "Live Log")
-            status_container = st.status("Team is working...", expanded=True)
-            
-            # 2. Define the callback that updates the log and stores it
-            def update_status(msg):
-                status_container.write(msg)
-                st.session_state.tool_logs.append(msg)
+            st.markdown(msg.content)
 
-            # 3. Run the Team
-            response_placeholder = st.empty()
+# 2. Handle HITL Input (If Agent is Paused)
+if st.session_state.awaiting_input:
+    with st.chat_message("assistant"):
+        st.warning(f"🛑 **APPROVAL REQUIRED:** {st.session_state.interrupt_value}")
+        
+    # Input for approval
+    approval = st.chat_input("Reply to the agent (e.g., 'Yes', 'No', 'Proceed')...")
+    
+    if approval:
+        # User replied to the pause
+        st.session_state.messages.append(HumanMessage(content=approval))
+        with st.chat_message("user"):
+            st.markdown(approval)
             
-            try:
-                client = MultiAgentClient(sse_url=mcp_url)
-                
-                # Run the async generator
-                async def run_stream():
-                    full_response = ""
-                    async for chunk in client.run_audit(prompt, update_status):
-                        # Each chunk is an incremental text delta
-                        full_response += chunk
-                        response_placeholder.markdown(full_response + "▌")
-                    return full_response
-                
-                full_response = asyncio.run(run_stream())
-                
-                # Finalize
-                status_container.update(label="Audit Complete!", state="complete", expanded=True)
-                response_placeholder.markdown(full_response)
-                
-                # Store the response with tool logs
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": full_response,
-                    "tool_logs": st.session_state.tool_logs.copy()
-                })
-                
-                # Mark conversation as complete
-                st.session_state.conversation_complete = True
-                st.rerun()
+        # RESUME EXECUTION
+        st.session_state.awaiting_input = False
+        
+        # We invoke with COMMAND to resume
+        # Note: We need to run this in the async loop below
+        user_input = Command(resume=approval)
+        run_agent = True
+    else:
+        run_agent = False # Wait for input
 
-            except Exception as e:
-                import traceback
-                error_details = traceback.format_exc()
-                st.error(f"Team Failure: {e}")
-                st.error(f"Full error:\n```\n{error_details}\n```")
-                status_container.update(label="Failed", state="error", expanded=True)
+# 3. Handle Normal Input
+elif prompt := st.chat_input("Ask Cerberus to audit files..."):
+    st.session_state.messages.append(HumanMessage(content=prompt))
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    user_input = {"messages": [HumanMessage(content=prompt)]}
+    run_agent = True
+
 else:
-    # Disable input when conversation is complete
-    st.chat_input("Assign a task to the team...", disabled=True)
+    run_agent = False
+
+
+# --- AGENT EXECUTION LOOP ---
+if run_agent:
+    with st.chat_message("assistant"):
+        response_placeholder = st.empty()
+        
+        # Create a live status container for log display
+        status_container = st.status("🧠 Cerberus Mind - Processing...", expanded=True)
+        
+        # Define callback in the Streamlit context
+        def log_callback(log_msg):
+            """Callback to display logs in real-time and store them"""
+            status_container.write(log_msg)
+            st.session_state.logs.append(log_msg)
+        
+        # Create logger with callback
+        logger = CerberusMindLogger(callback=log_callback)
+        
+        # Pass logger through config (not serializable, so can't go in state)
+        config = {
+            "configurable": {
+                "thread_id": st.session_state.thread_id,
+                "logger": logger
+            }
+        }
+        
+        # Run Agent SYNCHRONOUSLY
+        try:
+            # Invoke the agent synchronously
+            result = cerberus_agent.invoke(user_input, config=config)
+            
+            # Extract final response from result
+            final_response = ""
+            if "messages" in result:
+                messages = result["messages"]
+                # Get the last AI message
+                for msg in reversed(messages):
+                    if isinstance(msg, AIMessage):
+                        final_response = msg.content
+                        break
+            
+            # Update risk register if present
+            if "risk_register" in result and result["risk_register"]:
+                st.session_state.risk_register = result["risk_register"]
+                logger.log("System", f"📊 Updated risk register: {len(result['risk_register'])} risks")
+            
+            # Display final response
+            if final_response:
+                response_placeholder.markdown(final_response)
+                st.session_state.messages.append(AIMessage(content=final_response))
+                status_container.update(label="✅ Cerberus Mind - Complete", state="complete")
+                st.rerun()  # Rerun to update sidebar risk register
+            else:
+                response_placeholder.warning("Agent completed but no response was generated.")
+                status_container.update(label="⚠️ Cerberus Mind - No Response", state="error")
+                st.rerun()  # Rerun to update sidebar
+                
+        except NodeInterrupt as e:
+            # The graph has paused for HITL!
+            interrupt_value = str(e)
+            st.session_state.awaiting_input = True
+            st.session_state.interrupt_value = interrupt_value
+            status_container.update(label="🛑 Awaiting Input", state="running")
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Cerberus Crash: {e}")
+            status_container.update(label="❌ Cerberus Mind - Error", state="error")

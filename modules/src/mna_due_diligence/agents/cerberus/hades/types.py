@@ -25,9 +25,6 @@ class HadesState(TypedDict):
     legal_analyst_state: Dict[str, Any]
     report_writer_state: Dict[str, Any]
     
-    # Logs for Granular UI Streaming
-    logs: Annotated[List[str], operator.add]
-    
     # Final Output
     final_report: str
     

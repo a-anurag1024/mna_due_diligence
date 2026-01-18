@@ -5,7 +5,7 @@ from ..heads.planner_agent import AuditPlan
 
 
 # --- SUPERVISOR LOGIC ---
-def supervisor_node(state: HadesState):
+def supervisor_node(state: HadesState, config):
     """
     Decides which head to activate next based on the plan using LLM-based decision making.
     Increments current_step_index and enforces a maximum of 6 steps.
@@ -68,10 +68,11 @@ Generate a comprehensive summary of what was accomplished, what remains incomple
 - Restart the process with a more focused mission if needed
 """
         
+        logger = config.get('configurable', {}).get('logger')
+        
         return {
             "next": "FINISH",
-            "final_report": forced_report,
-            "logs": [f"Forced stop at step {idx}: exceeded maximum of 6 steps"]
+            "final_report": forced_report
         }
     
     # 3. If we finished all planned steps, write report (if not done)
@@ -110,11 +111,15 @@ Note: You should generally follow the plan unless observations suggest otherwise
     # 5. Increment the step index
     new_idx = idx + 1
     
-    # 6. Update current_step_instruction if we're executing a plan item
+    # 6. Log the decision
+    logger = config.get('configurable', {}).get('logger')
+    if logger:
+        logger.log("Supervisor", f"📊 Step {new_idx}: {decision.reasoning}")
+    
+    # 7. Update current_step_instruction if we're executing a plan item
     updates = {
         "next": decision.next_agent,
-        "current_step_index": new_idx,
-        "logs": [f"Supervisor Decision (Step {new_idx}): {decision.reasoning}"]
+        "current_step_index": new_idx
     }
     
     # Set the current instruction if proceeding with a plan item

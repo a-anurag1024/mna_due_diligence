@@ -60,9 +60,13 @@ workflow.add_edge("forced_ending", END)
 data_fetcher_agent = workflow.compile()
 
 
-def data_fetcher_node(instruction: str) -> dict:
+def data_fetcher_node(instruction: str, logger=None) -> dict:
     """
     Executes the Data Fetcher State Graph for the given instruction.
+    
+    Args:
+        instruction: The instruction for data fetching
+        logger: CerberusMindLogger instance for logging
     """
     # 1. Broadcast Update
     print(f"[Node] Data Fetcher Invoked with instruction: {instruction}")
@@ -81,11 +85,11 @@ def data_fetcher_node(instruction: str) -> dict:
     final_state = data_fetcher_agent.invoke(initial_state)
     
     # 4. Log and Return
-    log_msg = (
-        f"📥 Data Fetcher: Fetched {len(final_state['fetched_data'])} items in "
-        f"{final_state['iteration_count']} iterations."
-    )
-    print(log_msg)
+    if logger:
+        logger.log(
+            "Data Fetcher",
+            f"📥 Fetched {len(final_state['fetched_data'])} items in {final_state['iteration_count']} iterations."
+        )
     
     final_message = f"📝 Summary: {final_state['final_summary']}"
     final_message += "\nTool logs:"
@@ -93,6 +97,5 @@ def data_fetcher_node(instruction: str) -> dict:
     
     return {
         "fetched_data": final_state["fetched_data"],
-        "message": final_message,
-        "logs": [log_msg, final_message],
+        "message": final_message
     }

@@ -39,8 +39,11 @@ def gatekeeper_node(state: GateKeeperState):
 
 
 
-def direct_reply_node(state: GateKeeperState):
+def direct_reply_node(state: GateKeeperState, config):
     """Standard RAG or Chat response without the heavy workflow."""
+    # Broadcast Update
+    logger = config.get('configurable', {}).get('logger')
+    logger.log("Gatekeeper", "💬 Handling direct reply without Hades.")
     # This could check state["risk_register"] to answer questions about previous findings
     context = ""
     if state.get("risk_register"):
@@ -50,11 +53,14 @@ def direct_reply_node(state: GateKeeperState):
     return {"messages": [response]}
 
 
-def call_hades_wrapper(state: GateKeeperState):
+def call_hades_wrapper(state: GateKeeperState, config):
     """
     Invokes the Hades Subgraph.
     Maps Parent State -> Child State -> Parent State.
     """
+    logger = config.get('configurable', {}).get('logger')
+    logger.log("Gatekeeper", "🚪 Invoking Hades Subgraph for deep audit...")
+    
     user_input = state["messages"][-1].content
     
     # 1. Initialize Child State
@@ -63,16 +69,20 @@ def call_hades_wrapper(state: GateKeeperState):
         "plan": [],
         "current_step_index": 0,
         "fetched_data": {},
-        "identified_risks": [],
-        "logs": []
+        "identified_risks": []
     }
     
     # 2. Run Subgraph (This blocks until Hades finishes OR pauses for HITL)
-    result = hades_subgraph.invoke(initial_state)
+    # IMPORTANT: Pass config so logger is available to child nodes
+    result = hades_subgraph.invoke(initial_state, config=config)
     
     # 3. Extract Results
     final_report = result.get("final_report", "Audit failed to generate report.")
     new_risks = result.get("identified_risks", [])
+    
+    # Log the risks found
+    if logger:
+        logger.log("Gatekeeper", f"✅ Hades completed. Found {len(new_risks)} risks.")
     
     # 4. Update Parent State
     return {

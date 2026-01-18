@@ -11,14 +11,15 @@ llm = ChatOpenAI(model="gpt-4.1-mini")
 
 
 
-def planner_node(mission: str) -> dict:
+def planner_node(mission: str, logger=None) -> dict:
     """
     The Planner Node. 
     Reads the 'mission' and generates a structured 'AuditPlan'.
     Args:
         mission (str): High-level user mission for the audit.
+        logger: CerberusMindLogger instance for logging
     Returns:
-        dict: {"plan": AuditPlan, "logs": List of log messages}
+        dict: {"plan": AuditPlan}
     """
     # Broadcast
     print(f"[Node] Planner Invoked with mission: {mission}")
@@ -50,12 +51,12 @@ def planner_node(mission: str) -> dict:
     output_tokens = usage.get("output_tokens", 0)
     
     # 5. Log it
-    log_msg = (
-        f"📅 Planner: Created {len(plan_obj.steps)} steps. "
-        f"[Tokens: In={input_tokens}, Out={output_tokens}]"
-    )
+    if logger:
+        logger.log(
+            "Planner",
+            f"📅 Created {len(plan_obj.steps)} steps. [Tokens: In={input_tokens}, Out={output_tokens}]"
+        )
 
     return {
-        "plan": plan_obj,
-        "logs": [log_msg]
+        "plan": plan_obj
     }
