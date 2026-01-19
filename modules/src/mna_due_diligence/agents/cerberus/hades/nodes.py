@@ -82,7 +82,7 @@ def writer_wrapper(state: HadesState, config):
     logger = config.get('configurable', {}).get('logger')
     result = report_writer_node(
         mission=state['mission'],
-        risks=state['identified_risks'],
+        risks=state.get('identified_risks', []),
         logger=logger
     )
     if state.get('report_writer_state', None) is None:

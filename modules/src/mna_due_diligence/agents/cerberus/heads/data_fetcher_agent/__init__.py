@@ -94,8 +94,12 @@ def data_fetcher_node(instruction: str, logger=None) -> dict:
     final_message = f"📝 Summary: {final_state['final_summary']}"
     final_message += "\nTool logs:"
     final_message += "\n".join(final_state["tool_logs"])
+    fetched_data_summary = "\nFetched data summary:"
+    max_cap_per_file = 1000 // (len(final_state["fetched_data"]) if len(final_state["fetched_data"]) > 0 else 1)
+    for k, v in final_state['fetched_data'].items():
+        fetched_data_summary += f"\n {k}: {v[:max_cap_per_file]}"
     
     return {
         "fetched_data": final_state["fetched_data"],
-        "message": final_message
+        "message": final_message + fetched_data_summary
     }

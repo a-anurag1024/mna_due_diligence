@@ -34,14 +34,11 @@ class SupervisorDecision(BaseModel):
     next_agent: Literal["planner", "data_fetcher", "legal_analyst", "report_writer", "FINISH"] = Field(
         description="The next agent to invoke based on the plan and observations"
     )
-    plan_item_index: int = Field(
-        description="The index of the plan item being executed (0-based)"
-    )
     reasoning: str = Field(
         description="Brief explanation of why this agent was chosen"
     )
     next_instruction: str = Field(
-        description="The instruction for the next agent to execute"
+        description="The instruction for the next agent to execute. MUST BE SELF CONTAINED SO THAT AGENT CAN UNDERSTAND IT PROPERLY WITHOUT RELYING ON THE DATA GIVEN AS INPUT HERE. Like for example mention the filenames, party names, etc that are required to be fetched or serached while calling data_fetcher"
     )
 
 

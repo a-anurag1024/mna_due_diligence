@@ -2,7 +2,7 @@ from langchain.tools import tool
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import sessionmaker
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchPhrase
 from typing import Optional
 
 from mna_due_diligence.db import Contract, FileState
@@ -129,11 +129,11 @@ def filter_contracts_advanced(sql_query: str) -> str:
 @tool
 def search_clauses(query: str, filename: Optional[str] = None) -> str:
     """
-    Perform semantic search for clauses or concepts in contracts using vector embeddings.
+    Perform semantic search for clauses or concepts in contracts using vector embeddings. If filename is provided, restrict search to that document.
     
     Args:
         query: The search query or concept to look for (e.g., "termination clause", "liability cap", "intellectual property")
-        filename: Optional filename to restrict search to a specific contract document
+        filename: filename to restrict search to a specific contract document. A distinguishable part of the filename is sufficient.
     
     Returns:
         Top 15 most relevant contract clauses matching the query with their source documents
@@ -145,7 +145,7 @@ def search_clauses(query: str, filename: Optional[str] = None) -> str:
         # Build filter if filename provided
         q_filter = None
         if filename:
-            q_filter = Filter(must=[FieldCondition(key="filename", match=MatchValue(value=filename))])
+            q_filter = Filter(must=[FieldCondition(key="filename", match=MatchPhrase(phrase=filename))])
         
         # Search in vector database (synchronous)
         results = qdrant.query_points(
