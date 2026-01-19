@@ -1,0 +1,46 @@
+{
+    "ground_truth": {
+        "VerticalNet": [
+            {
+                "filename": "ImpresseCorp_20000322_S-1A_EX-10.11_5199234_EX-10.11_Co-Branding Agreement.pdf",
+                "clause_text": "[\"Except as otherwise set forth herein, neither party shall transfer, assign or cede any rights or delegate any obligations hereunder, in whole or in part, whether voluntarily or by operation of law, without the prior written consent of the other party, which consent may be withheld at the other party's reasonable business discretion; provided, however, that either party may transfer this Agreement without prior written consent of the other to an Affiliate of such party, or to the surviving party in a merger or consolidation, or to a purchaser of all or substantially all of its assets.\"]"
+            },
+            {
+                "filename": "LeadersonlineInc_20000427_S-1A_EX-10.8_4991089_EX-10.8_Co-Branding Agreement.pdf",
+                "clause_text": "[\"Except as otherwise set forth herein, neither Party shall transfer, assign or cede any rights or delegate any obligations hereunder, in whole or in part, whether voluntarily or by operation of law, without the prior written consent of the other Party,<omitted>which consent may be withheld at the other Party's reasonable business discretion; provided, however, that VerticalNet may transfer this Agreement without the prior written consent of LeadersOnline to an Affiliate of VerticalNet, or to the surviving Party in a merger or consolidation, or to a purchaser of all or substantially all of its assets.\"]"
+            },
+            {
+                "filename": "NeoformaInc_19991202_S-1A_EX-10.26_5224521_EX-10.26_Co-Branding Agreement.pdf",
+                "clause_text": "[\"Except as otherwise set forth herein, neither Party shall transfer, assign or cede any rights or delegate any obligations hereunder, in whole or in part, whether voluntarily or by operation of law, without the prior written consent of the other Party, which consent may be withheld at the other Party's reasonable business discretion; provided, however, that either Party may transfer this Agreement without prior written consent of the other Party to an Affiliate or in connection with a merger or sale of all or substantially all of the stock or assets of such Party.\"]"
+            }
+        ],
+        "Birch First Global Investments": [
+            {
+                "filename": "CybergyHoldingsInc_20140520_10-Q_EX-10.27_8605784_EX-10.27_Affiliate Agreement.pdf",
+                "clause_text": "['MA may not assign, sell, lease or otherwise transfer in whole or in party any of the rights granted pursuant to this Agreement without prior written approval of Company.']"
+            }
+        ]
+    },
+    "results": {
+        "VerticalNet": {
+            "agent_generated_report": "# Red Flag Report: Anti-Assignment Clauses for VerticalNet\n\n## Executive Summary\nThe transaction presents a **Medium** risk profile primarily due to restrictive anti-assignment clauses across multiple agreements. While these clauses include exceptions for affiliates, mergers, and asset sales, they could still impede VerticalNet\u2019s flexibility in transferring rights or obligations, potentially affecting operational and strategic flexibility.\n\n## Key Red Flags\n\n| File | Category | Severity | Evidence |\n|---|---|---|---|\n| ImpresseCorp_20000322_S-1A_EX-10.11_5199234_EX-10.11.pdf | Anti-Assignment | Medium | \"10.3. NO ASSIGNMENT...either party may transfer this Agreement without prior written consent...to an Affiliate, or in a merger or sale of all or substantially all of its assets.\" |\n| LeadersonlineInc_20000427_S-1A_EX-10.8_4991089_EX-10.8.pdf | Anti-Assignment | Medium | \"12.4. No Assignment...neither Party shall transfer, assign or cede any rights or delegate obligations...without prior written consent.\" |\n| NeoformaInc_19991202_S-1A_EX-10.26_5224521_EX-10.26.pdf | Anti-Assignment | Medium | \"16.2 NO ASSIGNMENT...Neither Party shall transfer, assign or cede any rights or delegate any obligations...without prior written consent, except to an Affiliate or in a merger or sale of assets.\" |\n| PaperexchangeComInc_20000322_S-1A_EX-10.4_5202103_EX-10.4.pdf | Anti-Assignment | Medium | \"13.2. No Assignment...cannot transfer rights or delegate obligations without prior written consent, with exceptions for affiliates and mergers.\" |\n\n## Recommendations\n- **Negotiate for broader assignment clauses** that minimize restrictions or remove the requirement for prior consent, especially in scenarios involving corporate restructuring.\n- **Establish clear provisions** that allow for automatic or less restrictive assignment rights in merger, acquisition, or asset transfer contexts to mitigate operational risks.\n- **Review existing agreements** for specific carve-outs and assess potential impacts on VerticalNet\u2019s flexibility and liabilities before finalizing the transaction.\n\n---\n\n**Overall Risk Level: Medium**\n\nWhile no high-severity risks have been identified, existing restrictions on assignment could pose operational challenges if not addressed. Strategic negotiations should focus on reducing these limitations to enhance VerticalNet's flexibility in future restructuring or strategic moves.",
+            "evaluation": {
+                "num_of_correct_risks_identified": 3,
+                "num_of_incorrect_risks_identified": 1,
+                "num_of_missed_risks": 0,
+                "evaluation_score": 8.0,
+                "short_explanation": "The agent correctly identified the three ground truth files and provided semantically matching clause evidence, resulting in 3 true positives. However, it also flagged one additional file, PaperexchangeComInc, which was not present in the ground truth, resulting in 1 false positive. No ground truth risks were missed. This results in good recall with one minor false positive, warranting an evaluation score of 8 out of 10."
+            }
+        },
+        "Birch First Global Investments": {
+            "agent_generated_report": "# Red Flag Report\n\n## Executive Summary\nThe transaction presents a **Medium** risk profile primarily due to restrictions on assignment and transfer rights related to Birch First Global Investments (MA). These clauses could potentially hinder flexible deal structuring, restructuring, or exit strategies depending on future circumstances.\n\n## Key Red Flags\n\n| File | Category | Severity | Evidence |\n|---|---|---|---|\n| CybergyHoldingsInc_20140520_10-Q_EX-10.27_8605784_EX-10.27_Affiliate Agreement.pdf | Assignment Restrictions | Medium | \"MA may not assign, sell, lease or otherwise transfer in whole or in part any of the rights granted pursuant to this Agreement without prior written approval of Company.\" |\n| CybergyHoldingsInc_20140520_10-Q_EX-10.27_8605784_EX-10.27_Affiliate Agreement.pdf | Change of Control | Medium | \"MA may not assign, sell, lease or otherwise transfer in whole or in part any of the rights granted pursuant to this Agreement without prior written approval of Company.\" |\n| CybergyHoldingsInc_20140520_10-Q_EX-10.27_8605784_EX-10.27_Affiliate Agreement.pdf | Change of Control | Medium | \"MA may not assign, sell, lease or otherwise transfer in whole or in part any of the rights granted pursuant to this Agreement without prior written approval of Company.\" |\n\n## Recommendations\n- Negotiate for more flexible assignment clauses to facilitate future restructuring, mergers, or asset transfers.\n- Consider requesting a waiver or carve-out for specific transfers to mitigate potential delays or restrictions.\n- Evaluate the impact of these restrictions on strategic exit options and plan accordingly during due diligence and deal negotiations.",
+            "evaluation": {
+                "num_of_correct_risks_identified": 1,
+                "num_of_incorrect_risks_identified": 1,
+                "num_of_missed_risks": 0,
+                "evaluation_score": 8.0,
+                "short_explanation": "The agent correctly identified the risk related to assignment restrictions with the correct file and matching clause text, resulting in one true positive. However, it flagged the same clause under 'Change of Control' category twice without corresponding Ground Truth entries, leading to a false positive. No risks were missed. Overall, this shows good recall but some hallucinated risks, resulting in a score of 8."
+            }
+        }
+    }
+}
