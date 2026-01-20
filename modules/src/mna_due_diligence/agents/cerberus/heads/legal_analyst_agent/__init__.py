@@ -62,7 +62,8 @@ legal_analyst_graph = workflow.compile(checkpointer=memory)
 def legal_analyst_node(instruction: str,
                        data: dict[str, str],
                        older_messages: list,
-                       config: dict = None) -> dict:
+                       config: dict = None,
+                       logger=None) -> dict:
     # Prepare Context
     context_str = f"TASK: {instruction}\n\nAVAILABLE DATA KEYS:\n"
     for key, val in data.items():
@@ -87,6 +88,13 @@ def legal_analyst_node(instruction: str,
     result = legal_analyst_graph.invoke(inputs, config=config)
     
     new_risks = [risk.model_dump(mode='json') for risk in result.get("new_risks", [])]
+    
+    # Log and Return
+    if logger:
+        logger.log(
+            "Legal Analyst",
+            f"🕵️ Identified {len(new_risks)} new risks in this session."
+        )
     
     return {
         "messages": result.get("messages", []),

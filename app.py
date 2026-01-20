@@ -63,7 +63,7 @@ with st.sidebar:
         st.info("No risks identified yet.")
 
 # --- MAIN: CHAT INTERFACE ---
-st.title("Cerberus: M&A Deal DUe Diligence Auditor")
+st.title("Cerberus: M&A Deal Due Diligence Auditor")
 
 # 1. Display Chat History
 for msg in st.session_state.messages:

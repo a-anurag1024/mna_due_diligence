@@ -6,6 +6,7 @@ from langgraph.types import interrupt, Command
 def ask_human_tool(question: str) -> str:
     """
     Use this tool to ask the human for clarification, approval, or missing data.
+    Always give the whole context in markdown format so the human can make an informed decision.
     The execution will PAUSE here until the human responds.
     """
     # This sends 'question' to the user and halts execution.
